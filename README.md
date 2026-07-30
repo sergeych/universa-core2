@@ -6,6 +6,9 @@ The official maintained continuation of the Universa JavaScript SDK. It provides
 
 > **Alpha status:** the API and packaging may change before the stable 2.0 release. Test existing applications before migrating, and pin the prerelease version where reproducible builds matter.
 
+Copyright (c) 2026 Sergey Chernov. Dual-licensed under
+BSD-3-Clause or GPL-2.0; see the included license files.
+
 ## Installation
 
 ### Node.js
@@ -415,118 +418,57 @@ console.log(response);
 
 Set `directConnection` to `false` or omit it when the topology's normal network endpoints are appropriate.
 
-Connect to network with default topology
+This alpha deliberately does not bundle a default topology because the current
+production topology has not yet been confirmed. Every `Network` must receive
+either a `topology` or `topologyFile` option.
+
+Connect with a topology provided by file path:
+
 ```js
 import { Network, PrivateKey } from 'universa-core2';
 
-// privateKey is PrivateKey instance
-const network = new Network(privateKey);
-let response;
-
-try { await network.connect(); }
-catch (err) { console.log("network connection error: ", err); }
-
-try { response = await network.command("sping"); }
-catch (err) { console.log("on network command:", err); }
-```
-Connect to network with topology, provided by file path
-```js
-import { Network, PrivateKey } from 'universa-core2';
-
-// privateKey is PrivateKey instance
 const network = new Network(privateKey, {
-  topologyFile: "/path/to/mainnet.json"
-});
-let response;
-
-try { await network.connect(); }
-catch (err) { console.log("network connection error: ", err); }
-
-try { response = await network.command("sping"); }
-catch (err) { console.log("on network command:", err); }
-```
-Connect to network with provided topology
-```js
-import { Network, PrivateKey, Topology } from 'universa-core2';
-
-const topology = await Topology.load(require("/path/to/mainnet.json"));
-
-// privateKey is PrivateKey instance
-const network = new Network(privateKey, { topology });
-let response;
-
-try { await network.connect(); }
-catch (err) { console.log("network connection error: ", err); }
-
-try { response = await network.command("sping"); }
-catch (err) { console.log("on network command:", err); }
-```
-Connect to network with direct connections (http/ip) to nodes
-```js
-import { Network, PrivateKey } from 'universa-core2';
-
-// privateKey is PrivateKey instance
-const network = new Network(privateKey, {
+  topologyFile: "/path/to/universa.json",
   directConnection: true
 });
-let response;
-
-try { await network.connect(); }
-catch (err) { console.log("network connection error: ", err); }
-
-try { response = await network.command("sping"); }
-catch (err) { console.log("on network command:", err); }
+await network.connect();
 ```
 
 ### Topology
-Load topology from file
+
+Load topology from a JSON file:
+
 ```js
+import { readFile } from 'node:fs/promises';
 import { Topology } from 'universa-core2';
 
-const topology = await Topology.load(require("/path/to/mainnet.json"));
+const packed = JSON.parse(await readFile('/path/to/universa.json', 'utf8'));
+const topology = await Topology.load(packed);
 ```
 
-Get topology from network instance
+Get the validated, updated topology from a connected network:
+
 ```js
-import { Network, PrivateKey } from 'universa-core2';
-
-// privateKey is PrivateKey instance
-const network = new Network(privateKey);
-await network.connect();
-
 const { topology } = network; // Updated topology instance
 ```
 
-Update topology
+Update and pack a topology for storage:
+
 ```js
-import { Topology } from 'universa-core2';
-
-const topology = await Topology.load(require("/path/to/mainnet.json"));
-const done = await topology.update(); // updates topology that then can be saved
-```
-
-Pack topology to save as file
-```js
-const fs = require('fs');
-import { Network, PrivateKey } from 'universa-core2';
-
-// privateKey is PrivateKey instance
-const network = new Network(privateKey);
-const { topology } = network; // Topology instance
-
+await topology.update(true); // true selects direct node connections
 const packedTopology = topology.pack();
-const json = JSON.stringify(packedTopology);
-fs.writeFile('mainnet.json', json);
 ```
 
 ### Running commands
 network.command(commandName, parameters) - returns Promise with result
 
+The following snippets assume `topology` was loaded as shown above.
+
 ```js
 import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
-const network = new Network(privateKey);
+const network = new Network(privateKey, { topology });
 let response;
 
 try { await network.connect(); }
@@ -549,7 +491,7 @@ isApproved(contractId, trustLevel: Double) // Promise[Boolean]
 import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
-const network = new Network(privateKey);
+const network = new Network(privateKey, { topology });
 let isApproved; // boolean
 
 try { await network.connect(); }
@@ -570,7 +512,7 @@ checkContract(contractId: HashId | Uint8Array | string, trustLevel: Double)
 import { Network, PrivateKey, NetworkApproval } from 'universa-core2';
 
 // privateKey is PrivateKey instance
-const network = new Network(privateKey);
+const network = new Network(privateKey, { topology });
 let status: NetworkApproval|null;
 
 try { await network.connect(); }
@@ -592,7 +534,7 @@ To load network time and use current timestamp:
 ```js
 import { Network, PrivateKey } from 'universa-core2';
 
-const network = new Network(privateKey);
+const network = new Network(privateKey, { topology });
 
 try { await network.connect(); } // network time is loaded
 catch (err) { console.log("network connection error: ", err); }
@@ -605,7 +547,7 @@ Also, you can load network time only, without establishing connection:
 ```js
 import { Network, PrivateKey } from 'universa-core2';
 
-const network = new Network(privateKey);
+const network = new Network(privateKey, { topology });
 await network.loadNetworkTime(); // network time is loaded
 const createdAt = network.now(); // Date (network current time)
 ```
@@ -701,7 +643,7 @@ const uPack; // U package TransactionPack instance, last revision
 const uKey; // PrivateKey instance, uPack owner's key
 const unitKey; // PrivateKey instance to be owner of your unit contract
 
-const network = new Network(uKey);
+const network = new Network(uKey, { topology });
 // you can omit this step if you already have connected Network instance
 await network.loadNetworkTime();
 

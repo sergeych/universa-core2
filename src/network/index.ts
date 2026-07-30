@@ -7,8 +7,6 @@ import Parcel from '../models/parcel';
 import HashId from '../models/hash_id';
 import { Estimator } from './estimator';
 
-const mainnet = require('../../mainnet.json');
-
 import {
   decode64,
   encode64,
@@ -135,7 +133,9 @@ export default class Network {
       return Topology.load(packed);
     }
 
-    return Topology.load(mainnet);
+    throw new Error(
+      "No default topology is bundled in this alpha; provide options.topology or options.topologyFile"
+    );
   }
 
   saveNewTopology() {

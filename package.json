@@ -12,12 +12,10 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./mainnet.json": "./mainnet.json",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "mainnet.json",
     "README.md",
     "LICENSE*"
   ],
