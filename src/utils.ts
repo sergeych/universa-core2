@@ -26,6 +26,7 @@ export async function retry(fn: any, options?: RetryOptions): Promise<any> {
 
     return val;
   } catch (error) {
+    if (error instanceof Canceled) throw error;
     if (onError) onError(error);
 
     if (attempts) {
@@ -42,7 +43,11 @@ export async function retry(fn: any, options?: RetryOptions): Promise<any> {
 }
 
 export function abortable(responsePromise: Promise<any>, request: any) {
-  return cancelable(responsePromise, () => { request && request.abort(); });
+  return cancelable(responsePromise, () => {
+    const activeRequest = typeof request === 'function' ? request() : request;
+    if (typeof activeRequest?.cancel === 'function') activeRequest.cancel();
+    else if (typeof activeRequest?.abort === 'function') activeRequest.abort();
+  });
 }
 
 export class Canceled extends Error {
@@ -66,6 +71,8 @@ function cancelable<T>(
     cancel = () => {
       try { if (onCancel) onCancel(); }
       catch (e) { reject(e); }
+
+      reject(new Canceled());
 
       return cancelable;
     };

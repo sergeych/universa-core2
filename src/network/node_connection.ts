@@ -11,13 +11,11 @@ import {
 import BossSingleton from '../boss';
 const boss = BossSingleton.getInstance();
 
-const isNode = Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
-const portableFetch = isNode ? require('node-fetch') : window.fetch;
-
 interface FetchOpts {
   method: string,
   headers: any,
-  body?: string
+  body?: string,
+  signal: AbortSignal
 }
 
 const CONNECTION_TIMEOUT = 5000;
@@ -140,7 +138,8 @@ export default class NodeConnection {
   }
 
   static request(method: string, url: string, options: any = {}) {
-    var req;
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
     const promise = new Promise((resolve, reject) => {
       let headers = options.headers || {};
@@ -151,11 +150,21 @@ export default class NodeConnection {
       let opts: FetchOpts = {
         method,
         headers,
+        signal: controller.signal
       };
 
       if (method === 'POST') opts.body = JSON.stringify(options.data);
 
-      portableFetch(url, opts).then((res: any) => {
+      const fetch = (globalThis as any).fetch;
+      if (typeof fetch !== 'function') {
+        reject(new Error('Fetch API is not available in this environment'));
+        return;
+      }
+
+      fetch(url, opts).then((res: any) => {
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ''}`);
+          }
           return res.blob();
         })
         .then(function (blob: Blob) {
@@ -167,19 +176,25 @@ export default class NodeConnection {
           if (answer && answer.result === "ok") resolve(answer.response);
           else reject(answer);
 
-        }).catch((err: Error) => reject(err));
+        }).catch((err: Error) => reject(err))
+        .finally(() => {
+          if (timeout !== undefined) clearTimeout(timeout);
+        });
 
       if (options.timeout) {
-        const e = new Error("Connection timed out");
-        setTimeout(reject, options.timeout, e);
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error("Connection timed out"));
+        }, options.timeout);
       }
     });
 
-    return abortable(promise, req);
+    return abortable(promise, controller);
   }
 
   static xchangeRequest(method: string, url: string, options: any = {}) {
-    var req;
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
     const promise = new Promise((resolve, reject) => {
       let headers = options.headers || {};
@@ -190,16 +205,36 @@ export default class NodeConnection {
       let opts: FetchOpts = {
         method,
         headers,
+        signal: controller.signal
       };
 
       if (method === 'POST') opts.body = JSON.stringify(options.data);
 
-      portableFetch(url, opts).then((res: any) => {
+      const fetch = (globalThis as any).fetch;
+      if (typeof fetch !== 'function') {
+        reject(new Error('Fetch API is not available in this environment'));
+        return;
+      }
+
+      fetch(url, opts).then((res: any) => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ''}`);
+        }
         return res.json();
       })
-      .then(resolve).catch((err: Error) => reject(err));
+      .then(resolve).catch((err: Error) => reject(err))
+      .finally(() => {
+        if (timeout !== undefined) clearTimeout(timeout);
+      });
+
+      if (options.timeout) {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error("Connection timed out"));
+        }, options.timeout);
+      }
     });
 
-    return abortable(promise, req);
+    return abortable(promise, controller);
   }
 }

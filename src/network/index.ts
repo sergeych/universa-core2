@@ -81,19 +81,36 @@ export default class Network {
   ready: Promise<void>;
   authKey: PrivateKey;
   setReady: any;
+  rejectReady: any;
   topology: Topology | undefined;
   timeOffset: number | null;
   timeUpdatedAt: number | null;
+  private readyState: 'pending' | 'fulfilled' | 'rejected';
+  private connecting: Promise<this> | null;
 
   constructor(privateKey: PrivateKey, options?: NetworkOptions) {
     this.options = options || {};
     this.connections = {};
     this.topologyKey = this.options.topologyKey || "__universa_topology";
     this.directConnection = this.options.directConnection || false;
-    this.ready = new Promise((resolve, reject) => { this.setReady = resolve; });
+    this.readyState = 'pending';
+    this.connecting = null;
+    this.resetReady();
     this.authKey = privateKey;
     this.timeOffset = null;
     this.timeUpdatedAt = null;
+  }
+
+  private resetReady() {
+    this.readyState = 'pending';
+    this.ready = new Promise<void>((resolve, reject) => {
+      this.setReady = resolve;
+      this.rejectReady = reject;
+    });
+
+    // `connect()` also returns the failure, so `ready` may have no direct
+    // consumer. Mark it handled without changing what its consumers observe.
+    this.ready.catch(() => undefined);
   }
 
   size() {
@@ -129,18 +146,42 @@ export default class Network {
     localStorage.setItem(this.topologyKey, encode64(boss.dump(packed)));
   }
 
-  async connect() {
-    this.topology = await this.getLastTopology();
-    // console.log(`Connecting to the Universa network`);
-    await this.topology.update(this.directConnection);
-    // console.log(`Loaded network configuration, ${this.size()} nodes`);
-    this.saveNewTopology();
+  connect(): Promise<this> {
+    if (this.connecting) return this.connecting;
+    if (this.readyState !== 'pending') this.resetReady();
 
-    if (!this.timeOffset) await this.loadNetworkTime();
+    this.connecting = this.performConnect();
+    return this.connecting;
+  }
 
-    this.setReady(true);
+  private async performConnect(): Promise<this> {
+    try {
+      this.topology = await this.getLastTopology();
+      // console.log(`Connecting to the Universa network`);
+      await this.topology.update(this.directConnection);
+      // console.log(`Loaded network configuration, ${this.size()} nodes`);
+      this.saveNewTopology();
 
-    return this;
+      if (this.timeOffset === null) {
+        try {
+          await this.loadNetworkTime();
+        } catch (err) {
+          // Network time is an optional service and must not prevent access
+          // to an otherwise functioning Universa network.
+        }
+      }
+
+      this.readyState = 'fulfilled';
+      this.setReady();
+
+      return this;
+    } catch (err) {
+      this.readyState = 'rejected';
+      this.rejectReady(err);
+      throw err;
+    } finally {
+      this.connecting = null;
+    }
   }
 
   async nodeConnection(nodeId: string) {
@@ -177,18 +218,25 @@ export default class Network {
     let req: any, conn: NodeConnection;
 
     const run = async () => {
-      conn = conn || connection || await this.getRandomConnection();
+      conn = connection || await this.getRandomConnection();
 
-      req = conn.command(name, options, requestOptions);
-
-      return await req;
+      try {
+        req = conn.command(name, options, requestOptions);
+        return await req;
+      } catch (error) {
+        if (!connection) {
+          const nodeId = await conn.node.getId();
+          if (nodeId) delete this.connections[nodeId];
+        }
+        throw error;
+      }
     };
 
     return abortable(retry(run, {
       attempts: 5,
       interval: 1000,
       onError: (e: Error) => console.log(e, ` send command again`)
-    }), req);
+    }), () => req);
   }
 
   getState(
@@ -453,7 +501,7 @@ export default class Network {
   }
 
   now() {
-    if (!this.timeOffset)
+    if (this.timeOffset === null)
       throw new Error('you should load network time before');
 
     const localTime = Date.now();
@@ -463,7 +511,7 @@ export default class Network {
 
   async loadNetworkTime() {
     const url = 'https://xchange.mainnetwork.io/api/v1/utc';
-    const response = await NodeConnection.xchangeRequest('GET', url);
+    const response = await NodeConnection.xchangeRequest('GET', url, { timeout: 3000 });
     const uTime = response.currentEpochSecond * 1000;
     const localTime = Date.now();
 

@@ -4,6 +4,13 @@ const randomIndex = (arrayLength: number) => ~~(arrayLength * Math.random());
 
 type NodeDictionary = { [id: string]: Node };
 
+interface PackedTopology {
+  list: Array<NodeInfo>;
+  updated: number;
+}
+
+type TopologyInput = PackedTopology | Array<NodeInfo>;
+
 export default class Topology {
   nodes: NodeDictionary;
   updatedAt: Date;
@@ -52,19 +59,15 @@ export default class Topology {
 
     function buildFinal(trustLevel: number) {
       const nodes: { [id: string]: Node } = {};
+      const confirmedCount = Object.keys(confirmed).length;
 
       for (var id in stats) {
-        let total = 0;
         const list = stats[id];
-
-        list.map(stat => {
-          total += stat.count;
-        });
 
         let trusted;
 
         if (trustLevel !== 0)
-          trusted = list.find(n => n.count/total >= trustLevel);
+          trusted = list.find(n => confirmedCount > 0 && n.count/confirmedCount >= trustLevel);
         else {
           const maximum = Math.max.apply(null, list.map(n => n.count));
           trusted = list.find(n => n.count === maximum);
@@ -122,12 +125,15 @@ export default class Topology {
         async function processResponse(id: string, resp: any) {
           if (resultFound) return;
 
+          const responseNodes: Array<NodeInfo> = resp.nodes;
+          const responseTopology = await Topology.load({
+            list: responseNodes,
+            updated: Math.floor(Date.now() / 1000)
+          });
+
+          await addStats(Object.values(responseTopology.nodes));
           confirmed[id] = resp;
           delete failed[id];
-
-          const responseNodes: Array<NodeInfo> = resp.nodes;
-
-          await addStats(responseNodes.map(info => new Node(info)));
 
           if (Object.keys(confirmed).length >= Nt) success();
         }
@@ -180,22 +186,47 @@ export default class Topology {
     return this.nodes[id];
   }
 
-  static async load(packed: any) {
-    const nodes: { [id: string]: Node } = {};
-    const list: Array<NodeInfo> = packed.list;
+  static async load(input: TopologyInput): Promise<Topology>;
+  static async load(input: unknown): Promise<Topology>;
+  static async load(input: unknown) {
+    const packed: any = input;
+    const isRawList = Array.isArray(packed);
+    if (!isRawList && (!packed || typeof packed !== "object" || !Array.isArray(packed.list)))
+      throw new Error("invalid topology: expected a node array or an object with a list array");
 
-    const queue = list.map(async (info) => {
+    const list: Array<NodeInfo> = isRawList ? packed : packed.list;
+    if (list.length === 0) throw new Error("invalid topology: node list is empty");
+
+    let updatedAt: Date;
+    if (isRawList) {
+      updatedAt = new Date();
+    } else {
+      if (typeof packed.updated !== "number" || !Number.isFinite(packed.updated) || packed.updated < 0)
+        throw new Error("invalid topology: updated must be a non-negative Unix timestamp");
+      updatedAt = new Date(packed.updated * 1000);
+    }
+
+    const nodes: { [id: string]: Node } = {};
+
+    const loaded = await Promise.all(list.map(async (info) => {
       const node = new Node(info);
       const nodeId = await node.getId();
       if (!nodeId) throw new Error("invalid node");
-      nodes[nodeId] = node;
-    });
+      return { node, nodeId };
+    }));
 
-    return Promise.all(queue).then(() => {
-      return new Topology(
-        nodes,
-        new Date(packed.updated * 1000)
-      );
-    });
+    const names = new Set<string>();
+    const numbers = new Set<number>();
+    for (const { node, nodeId } of loaded) {
+      if (nodes[nodeId]) throw new Error(`invalid topology: duplicate node key (${node.name})`);
+      if (names.has(node.name)) throw new Error(`invalid topology: duplicate node name ${node.name}`);
+      if (numbers.has(node.number)) throw new Error(`invalid topology: duplicate node number ${node.number}`);
+
+      nodes[nodeId] = node;
+      names.add(node.name);
+      numbers.add(node.number);
+    }
+
+    return new Topology(nodes, updatedAt);
   }
 }

@@ -1,14 +1,32 @@
 {
-  "name": "universa-core",
-  "version": "1.9.3",
-  "description": "Tools to perform basic operations with Universa networks and contracts",
-  "main": "dist/uni.min.js",
-  "types": "dist/types/index.d.ts",
+  "name": "universa-core2",
+  "version": "2.0.0-alpha.1",
+  "description": "Official Universa JavaScript SDK for contracts and network operations",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./mainnet.json": "./mainnet.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "mainnet.json",
+    "README.md",
+    "LICENSE*"
+  ],
   "scripts": {
     "coverage": "nyc npm run test",
     "test": "mocha --timeout 150000 -r ts-node/register test/**/*.ts",
-    "build": "webpack --config webpack.config.js",
-    "postinstall": "node ./bin/postinstall.js"
+    "typecheck": "tsc --noEmit",
+    "build": "tsup && node scripts/finalize-build.mjs",
+    "prepack": "npm run typecheck && npm run build"
   },
   "keywords": [
     "network",
@@ -18,36 +36,34 @@
   ],
   "author": "Universa Blockchain Team",
   "license": "(BSD-3-Clause OR GPL-2.0)",
-  "bugs": "https://github.com/UniversaBlockchain/universa-core-js/issues",
+  "bugs": "https://github.com/sergeych/universa-core2/issues",
+  "homepage": "https://github.com/sergeych/universa-core2#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/UniversaBlockchain/universa-core-js"
+    "url": "git+https://github.com/sergeych/universa-core2.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@types/big.js": "6.0.1",
     "big.js": "6.0.1",
-    "node-fetch": "^2.6.1",
-    "unicrypto": "^1.14.1",
-    "xhr-request": "^1.1.0"
+    "unicrypto": "npm:unicrypto2@2.0.0-alpha.1"
   },
   "devDependencies": {
     "@types/chai": "^4.2.10",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^14.0.14",
-    "@types/node-fetch": "^2.5.7",
-    "@types/webpack": "^4.41.21",
-    "@types/webpack-dev-server": "^3.11.0",
+    "@types/node": "^20.17.0",
     "chai": "^4.2.0",
     "file-loader": "^6.0.0",
     "mocha": "^8.0.1",
     "nyc": "^14.1.1",
-    "terser-webpack-plugin": "^2.2.2",
-    "ts-loader": "^8.0.1",
     "ts-node": "^8.6.2",
-    "typescript": "^4.1.6",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10",
-    "webpack-merge": "^4.2.2"
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "directories": {
     "test": "test"

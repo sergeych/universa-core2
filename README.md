@@ -1,39 +1,50 @@
-## universa-core
-Tools to perform basic operations with Universa networks and contracts
+# universa-core2
+
+The official maintained continuation of the Universa JavaScript SDK. It provides tools for working with Universa networks, contracts, transaction packs, parcels, roles, permissions, and keys.
+
+`universa-core2` continues the open-source [`universa-core`](https://www.npmjs.com/package/universa-core) project under a new package name because the modernized SDK may not be completely compatible with applications built against the legacy release. The maintained source is [`sergeych/universa-core2`](https://github.com/sergeych/universa-core2). It is derived from [`UniversaBlockchain/universa-core-js`](https://github.com/UniversaBlockchain/universa-core-js), whose history and attribution are retained in this continuation.
+
+> **Alpha status:** the API and packaging may change before the stable 2.0 release. Test existing applications before migrating, and pin the prerelease version where reproducible builds matter.
 
 ## Installation
+
 ### Node.js
-For usage in an existing Node.js project, add it to your dependencies:
-```
-$ npm install universa-core
-```
-or with yarn:
-```
-$ yarn add universa-core
-```
-And use it with the following line wherever you need it:
-```javascript
-import { Network } from 'universa-core';
+
+Node.js 20 or newer is required. Install the current alpha explicitly:
+
+```bash
+npm install universa-core2@alpha
 ```
 
-### Web
-In root folder of package run
+Or with yarn:
+
 ```bash
-npm install
-npm run build
+yarn add universa-core2@alpha
 ```
-In folder `dist` (public/js, build) there will be `uni.%version%.min.js` and `crypto.%version%.wasm`. Simply copy two files to wherever you keep your vendor scripts and include it as a script:
-```html
-<script src="path/to/uni.min.js"></script>
-<script> const generator = Uni.PrivateKey.generate({ strength: 2048 }); </script>
+
+Import APIs from the new package name:
+
+```javascript
+import { Network } from 'universa-core2';
 ```
+
+### Migrating from `universa-core`
+
+Change the dependency and package imports:
+
+```diff
+- import { Network, PrivateKey } from 'universa-core';
++ import { Network, PrivateKey } from 'universa-core2';
+```
+
+The project keeps the familiar SDK API where practical, but this alpha is not promised to be a drop-in replacement. In particular, validate module loading, network connectivity, topology handling, contract serialization, and browser-specific integration in your application. The alpha currently targets modern Node.js; do not assume that the legacy browser bundle workflow is unchanged.
 
 ## Contract
 ### Basic models
 #### KeyRecord
 KeyRecord is PublicKey container extended with extra data
 ```js
-import { PublicKey, KeyRecord } from 'universa-core';
+import { PublicKey, KeyRecord } from 'universa-core2';
 
 const pub: PublicKey;
 const optionalData = { comment: "this is key record", author: "John Doe" };
@@ -56,7 +67,7 @@ import {
   PublicKey,
   KeyRecord,
   RoleSimple
-} from 'universa-core';
+} from 'universa-core2';
 
 const pub: PublicKey;
 const pub2: PublicKey;
@@ -69,7 +80,7 @@ import {
   PublicKey,
   KeyRecord,
   RoleSimple
-} from 'universa-core';
+} from 'universa-core2';
 
 const pub: PublicKey;
 const record = KeyRecord.create(pub, { description: "main key" });
@@ -79,7 +90,7 @@ const role = new RoleSimple("director", { keyRecords: [record] });
 #### Role Link
 Create role that links to other role
 ```js
-import { RoleLink, RoleSimple } from 'universa-core';
+import { RoleLink, RoleSimple } from 'universa-core2';
 
 const roleSimple: RoleSimple;
 const link1 = new RoleSimple("director", roleSimple.name);
@@ -91,7 +102,7 @@ Role List is role that represents logical combination of other roles
 
 ANY mode to create role that available for any role in the list
 ```js
-import { RoleList, RoleLink, RoleSimple } from 'universa-core';
+import { RoleList, RoleLink, RoleSimple } from 'universa-core2';
 
 const link1: RoleLink;
 const link2: RoleLink;
@@ -110,7 +121,7 @@ const list2 = new RoleList("founder", {
 ```
 ALL mode to create role that available only if all roles from list available
 ```js
-import { RoleList, RoleLink, RoleSimple } from 'universa-core';
+import { RoleList, RoleLink, RoleSimple } from 'universa-core2';
 
 const link1: RoleLink;
 const link2: RoleLink;
@@ -123,7 +134,7 @@ const list1 = new RoleList("founder", {
 ```
 QUORUM mode to make role available if at least quorumSize(number) roles is available
 ```js
-import { RoleList, RoleLink, RoleSimple } from 'universa-core';
+import { RoleList, RoleLink, RoleSimple } from 'universa-core2';
 
 const link1: RoleLink;
 const link2: RoleLink;
@@ -141,7 +152,7 @@ const list1 = new RoleList("founder", {
 #### Revoke permission
 Revoke permission grants permission to revoke contract to specific role
 ```js
-import { RevokePermission } from 'universa-core';
+import { RevokePermission } from 'universa-core2';
 
 const role: Role;
 
@@ -155,7 +166,7 @@ const revoke2 = RevokePermission.create("owner");
 #### Change owner permission
 Change owner permission grants permission to change owner of contract
 ```js
-import { ChangeOwnerPermission } from 'universa-core';
+import { ChangeOwnerPermission } from 'universa-core2';
 
 const admin: Role;
 
@@ -169,7 +180,7 @@ const changeOwner2 = ChangeOwnerPermission.create("admin");
 #### Change number permission
 Change number permission grants permission to change number value of the specific field in state.data section of contract
 ```js
-import { ChangeNumberPermission } from 'universa-core';
+import { ChangeNumberPermission } from 'universa-core2';
 
 const admin: Role;
 
@@ -193,7 +204,7 @@ console.log(changeNumber.params); // params
 #### Modify data permission
 Modify data permission grants permission to change multitype value of the specific field in state.data section of contract with fixed set of values
 ```js
-import { ModifyDataPermission } from 'universa-core';
+import { ModifyDataPermission } from 'universa-core2';
 
 const admin: Role;
 
@@ -218,7 +229,7 @@ console.log(modifyData.params); // params
 #### Split / join permission
 Split / join permission grants permission to split or join contracts by specific number field when some of contract attribures are the same
 ```js
-import { SplitJoinPermission } from 'universa-core';
+import { SplitJoinPermission } from 'universa-core2';
 
 const admin: Role;
 
@@ -255,7 +266,7 @@ console.log(contract.transactional); // null
 ### References
 To create definition and state references, use types Reference.TYPE_EXISTING_DEFINITION, Reference.TYPE_EXISTING_STATE
 ```js
-import { Reference } from 'universa-core';
+import { Reference } from 'universa-core2';
 
 // example of where condition
 const name = 'my_reference';
@@ -269,7 +280,7 @@ console.log(refTransactional.type); // Reference.TYPE_TRANSACTIONAL
 ```
 Add reference to contract
 ```js
-import { Reference } from 'universa-core';
+import { Reference } from 'universa-core2';
 
 const contract; // Contract instance
 const name = 'my_reference';
@@ -282,7 +293,7 @@ console.log(contract.definition.references); // [Reference]
 ```
 Modifying extra parameters
 ```js
-import { Reference } from 'universa-core';
+import { Reference } from 'universa-core2';
 
 const name = 'my_reference';
 const type = Reference.TYPE_EXISTING_STATE; // definition reference
@@ -304,7 +315,7 @@ ref.transactionalId = 'some_id';
 ## Transaction Pack
 Load transaction pack from binary
 ```js
-import { TransactionPack } from 'universa-core';
+import { TransactionPack } from 'universa-core2';
 
 const tpackBinary; // Uint8Array;
 const tpack = TransactionPack.unpack(tpackBinary);
@@ -316,7 +327,7 @@ const parent = await tpack.getItem(tpack.contract.parent);
 ```
 Sign transaction pack's main contract
 ```js
-import { TransactionPack } from 'universa-core';
+import { TransactionPack } from 'universa-core2';
 
 const tpackBinary; // Uint8Array;
 const tpack = TransactionPack.unpack(tpackBinary);
@@ -325,7 +336,7 @@ tpack.sign(privateKey); // some PrivateKey instance to sign
 ```
 Get tagged contract
 ```js
-import { TransactionPack } from 'universa-core';
+import { TransactionPack } from 'universa-core2';
 
 const tpackBinary; // Uint8Array;
 const tpack = TransactionPack.unpack(tpackBinary);
@@ -334,7 +345,7 @@ const contract = await tpack.getTag("sometag"); // Contract instance
 ```
 Add tag
 ```js
-import { TransactionPack } from 'universa-core';
+import { TransactionPack } from 'universa-core2';
 
 const tpackBinary; // Uint8Array;
 const tpack = TransactionPack.unpack(tpackBinary);
@@ -343,7 +354,7 @@ await tpack.addTag("mytag", hashId); // some HashId instance
 ```
 Add subItem
 ```js
-import { TransactionPack } from 'universa-core';
+import { TransactionPack } from 'universa-core2';
 
 const tpackBinary; // Uint8Array;
 const contractBinary; // Uint8Array, packed Contract instance
@@ -353,7 +364,7 @@ await tpack.addSubItem(contractBinary); // some HashId instance
 ```
 Add referencedItem
 ```js
-import { TransactionPack } from 'universa-core';
+import { TransactionPack } from 'universa-core2';
 
 const tpackBinary; // Uint8Array;
 const contractBinary; // Uint8Array, packed Contract instance
@@ -377,10 +388,36 @@ main.state // state
 ```
 
 ## Network
+
 ### Connecting to network
+
+For a custom topology in a modern Node.js application, load its JSON and enable direct node connections when required:
+
+```js
+import { readFile } from 'node:fs/promises';
+import { Network, Topology } from 'universa-core2';
+
+const topologyData = JSON.parse(
+  await readFile(new URL('./universa.json', import.meta.url), 'utf8')
+);
+const topology = await Topology.load(topologyData);
+
+// privateKey is a PrivateKey instance owned by this client.
+const network = new Network(privateKey, {
+  topology,
+  directConnection: true
+});
+
+await network.connect();
+const response = await network.command('sping');
+console.log(response);
+```
+
+Set `directConnection` to `false` or omit it when the topology's normal network endpoints are appropriate.
+
 Connect to network with default topology
 ```js
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
 const network = new Network(privateKey);
@@ -394,7 +431,7 @@ catch (err) { console.log("on network command:", err); }
 ```
 Connect to network with topology, provided by file path
 ```js
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
 const network = new Network(privateKey, {
@@ -410,7 +447,7 @@ catch (err) { console.log("on network command:", err); }
 ```
 Connect to network with provided topology
 ```js
-import { Network, PrivateKey, Topology } from 'universa-core';
+import { Network, PrivateKey, Topology } from 'universa-core2';
 
 const topology = await Topology.load(require("/path/to/mainnet.json"));
 
@@ -424,25 +461,9 @@ catch (err) { console.log("network connection error: ", err); }
 try { response = await network.command("sping"); }
 catch (err) { console.log("on network command:", err); }
 ```
-(Browser only) Connect to network and save topology to localStorage
-```js
-import { Network, PrivateKey } from 'universa-core';
-
-// privateKey is PrivateKey instance
-const network = new Network(privateKey, {
-  topologyKey: "local_storage_key_to_store"
-});
-let response;
-
-try { await network.connect(); }
-catch (err) { console.log("network connection error: ", err); }
-
-try { response = await network.command("sping"); }
-catch (err) { console.log("on network command:", err); }
-```
 Connect to network with direct connections (http/ip) to nodes
 ```js
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
 const network = new Network(privateKey, {
@@ -460,14 +481,14 @@ catch (err) { console.log("on network command:", err); }
 ### Topology
 Load topology from file
 ```js
-import { Topology } from 'universa-core';
+import { Topology } from 'universa-core2';
 
 const topology = await Topology.load(require("/path/to/mainnet.json"));
 ```
 
 Get topology from network instance
 ```js
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
 const network = new Network(privateKey);
@@ -478,7 +499,7 @@ const { topology } = network; // Updated topology instance
 
 Update topology
 ```js
-import { Topology } from 'universa-core';
+import { Topology } from 'universa-core2';
 
 const topology = await Topology.load(require("/path/to/mainnet.json"));
 const done = await topology.update(); // updates topology that then can be saved
@@ -487,7 +508,7 @@ const done = await topology.update(); // updates topology that then can be saved
 Pack topology to save as file
 ```js
 const fs = require('fs');
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
 const network = new Network(privateKey);
@@ -502,7 +523,7 @@ fs.writeFile('mainnet.json', json);
 network.command(commandName, parameters) - returns Promise with result
 
 ```js
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
 const network = new Network(privateKey);
@@ -525,7 +546,7 @@ Special command to check contract status over network
 isApproved(contractId, trustLevel: Double) // Promise[Boolean]
 
 ```js
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 // privateKey is PrivateKey instance
 const network = new Network(privateKey);
@@ -546,7 +567,7 @@ Special command to check contract status over network
 checkContract(contractId: HashId | Uint8Array | string, trustLevel: Double)
 
 ```js
-import { Network, PrivateKey, NetworkApproval } from 'universa-core';
+import { Network, PrivateKey, NetworkApproval } from 'universa-core2';
 
 // privateKey is PrivateKey instance
 const network = new Network(privateKey);
@@ -569,7 +590,7 @@ Contract revisions that contain state.createdAt time far in past or future will 
 To load network time and use current timestamp:
 
 ```js
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 const network = new Network(privateKey);
 
@@ -582,7 +603,7 @@ const createdAt = network.now(); // Date (network current time)
 Also, you can load network time only, without establishing connection:
 
 ```js
-import { Network, PrivateKey } from 'universa-core';
+import { Network, PrivateKey } from 'universa-core2';
 
 const network = new Network(privateKey);
 await network.loadNetworkTime(); // network time is loaded
@@ -602,7 +623,7 @@ Parcel is special object used to register contract with U payment.
 
 To create payment
 ```js
-import { Network, Parcel } from 'universa-core';
+import { Network, Parcel } from 'universa-core2';
 
 const tpack; // TransactionPack instance to register
 const upack; // TransactionPack instance of you U package contract
@@ -639,7 +660,7 @@ console.log(result.payment, result.payload); // shows itemResult for each pack
 ## Compound
 Read compound
 ```js
-import Compound from 'universa-core';
+import Compound from 'universa-core2';
 
 const compoundBIN; // packed compound Uint8Array
 const compound = Compound.unpack(compoundBIN);
@@ -647,7 +668,7 @@ const compound = Compound.unpack(compoundBIN);
 
 Get tagged contract from compound
 ```js
-import Compound from 'universa-core';
+import Compound from 'universa-core2';
 
 const compoundBIN; // packed compound Uint8Array
 const compound = Compound.unpack(compoundBIN);
@@ -656,7 +677,7 @@ const someContractTransactionPack = await compound.getTag('sometag'); // Transac
 
 Sign compound
 ```js
-import Compound from 'universa-core';
+import Compound from 'universa-core2';
 
 const compoundBIN; // packed compound Uint8Array
 const compound = Compound.unpack(compoundBIN);
@@ -666,7 +687,7 @@ await compound.sign(privateKey); // privateKey: PrivateKey instance
 
 Pack compound
 ```js
-import Compound from 'universa-core';
+import Compound from 'universa-core2';
 
 const compoundBIN; // packed compound Uint8Array
 const compound = Compound.unpack(compoundBIN);

@@ -6,5 +6,6 @@ vendor/*
 !vendor/forge.js
 .DS_Store
 .nyc_output
-package-lock.json
 src/test/contracts
+/dist/*
+!/dist/.gitkeep
