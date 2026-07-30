@@ -6,9 +6,5 @@ const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 copyFileSync(
   resolve(projectDirectory, 'src/index.esm.js'),
-  resolve(projectDirectory, 'dist/index.js')
-);
-copyFileSync(
-  resolve(projectDirectory, 'dist/index.d.cts'),
-  resolve(projectDirectory, 'dist/index.d.ts')
+  resolve(projectDirectory, 'dist/index.mjs')
 );
